@@ -12,3 +12,52 @@ services:
       - ./data/northwind.sql:/docker-entrypoint-initdb.d/northwind.sql
     ports:
       - 5432:5432
+
+  airflow-webserver:
+    image: apache/airflow:latest
+    command: webserver
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://northwind_user:thewindisblowing@db/northwind
+      AIRFLOW__CORE__FERNET_KEY: ''
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs 
+      - ./airflow/plugins:/opt/airflow/plugins
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+
+  airflow-scheduler:
+    image: apache/airflow:latest
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://northwind_user:thewindisblowing@db/northwind
+      AIRFLOW__CORE__FERNET_KEY: ''
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs 
+      - ./airflow/plugins:/opt/airflow/plugins 
+    depends_on:
+      - db
+  
+  airflow-init:
+    image: apache/airflow:latest
+    command: airflow db init
+    environment:
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://northwind_user:thewindisblowing@db/northwind
+      AIRFLOW__CORE__FERNET_KEY: ''
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs 
+      - ./airflow/plugins:/opt/airflow/plugins
+    depends_on:
+      - db
+    entrypoint: 
+      ["bash", "-c", "airflow db init && airflow users create --username admin --firstname Admin --lastname User --email admin@example.com --role Admin --password admin"]
+
+volumes: 
+  postgres_data:
